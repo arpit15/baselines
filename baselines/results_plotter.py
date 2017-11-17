@@ -48,6 +48,7 @@ def plot_curves(xy_list, xaxis, title):
         color = COLORS[i]
         plt.scatter(x, y, s=2)
         x, y_mean = window_func(x, y, EPISODES_WINDOW, np.mean) #So returns average of last EPISODE_WINDOW episodes
+        
         plt.plot(x, y_mean, color=color)
     plt.xlim(minx, maxx)
     plt.title(title)
@@ -81,6 +82,8 @@ def main():
     args = parser.parse_args()
     args.dirs = [os.path.abspath(dir) for dir in args.dirs]
     plot_results(args.dirs, args.num_timesteps, args.xaxis, args.task_name)
+
+    print("showing the results")
     plt.show()
 
 if __name__ == '__main__':
