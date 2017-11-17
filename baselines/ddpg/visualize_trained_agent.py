@@ -104,14 +104,14 @@ def parse_args():
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--reward-scale', type=float, default=1.)
     parser.add_argument('--clip-norm', type=float, default=None)
-    parser.add_argument('--nb-eval-steps', type=int, default=100)  # per epoch cycle and MPI worker
+    parser.add_argument('--nb-eval-steps', type=int, default=1000)  # per epoch cycle and MPI worker
     parser.add_argument('--noise-type', type=str, default='adaptive-param_0.2')  # choices are adaptive-param_xx, ou_xx, normal_xx, none
     boolean_flag(parser, 'evaluation', default=True)
 
     ## saving and restoring param parser
     parser.add_argument('--log-dir', type=str, default='/home/arpit/new_RL3/baseline_results/HalfCheetah/run2')
     parser.add_argument('--save-freq', type=int, default=100000)
-    parser.add_argument('--restore-dir', type=str, default=None)
+    parser.add_argument('--restore-dir', type=str, default="/home/arpit/new_RL3/baseline_results/HalfCheetah/run1")
     boolean_flag(parser, 'dologging', default=False)    
 
     args = parser.parse_args()
@@ -122,16 +122,8 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    args["restore_dir"] = args["log_dir"]
-    
-    # print(args["env_id"])
-    # env = gym.make(args["env_id"])
-    # done = False
-    # env.reset()
-    # while(not done):
-    #     a = env.action_space.sample()
-    #     _, _, done, _ = env.step(a)
-    #     env.render()
-
     # Run actual script.
-    run(**args)
+    try:
+        run(**args)
+    except KeyboardInterrupt:
+        print("Exiting!")

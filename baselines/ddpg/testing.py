@@ -13,7 +13,7 @@ import tensorflow as tf
 from mpi4py import MPI
 
 import os.path as osp
-from ipdb import set_trace
+from time import sleep
 
 def test(env, render_eval, reward_scale, param_noise, actor, critic,
     normalize_returns, normalize_observations, critic_l2_reg, actor_lr, critic_lr, action_noise,
@@ -56,8 +56,8 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
                 
         # Evaluate.
         eval_episode_rewards = []
+        eval_episode_rewards_history = []
         eval_qs = []
-        
         eval_obs = eval_env.reset()
 
         eval_episode_reward = 0.
@@ -65,16 +65,23 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
             eval_action, eval_q = agent.pi(eval_obs, apply_noise=False, compute_Q=True)
             eval_obs, eval_r, eval_done, eval_info = eval_env.step(max_action * eval_action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
             if render_eval:
+                # print("render!")
                 eval_env.render()
+                sleep(0.01)
+                # print("rendered!")
 
             eval_episode_reward += eval_r
 
             eval_qs.append(eval_q)
             if eval_done:
+                print("episode reward::%f"%eval_episode_reward)
                 eval_obs = eval_env.reset()
                 eval_episode_rewards.append(eval_episode_reward)
                 eval_episode_rewards_history.append(eval_episode_reward)
                 eval_episode_reward = 0.
+
+        if(not eval_done):
+            print("episode reward::%f"%eval_episode_reward)
 
             
 
