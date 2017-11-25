@@ -175,16 +175,14 @@ class DDPG(object):
         
         else:
             ## inverting gradients
-            #self.critic_grads_wrt_action_tf = U.flatgrad(self.actor_loss, [self.actor_tf])
             self.critic_grads_wrt_action_tf = tf.gradients(self.actor_loss, self.actor_tf)
-            def f1(): lambda: tf.multiply(self.critic_grads_wrt_action_tf, (self.action_range[1]-self.actor_tf)/(self.action_range[1] - self.action_range[0]))
-            def f2(): lambda: tf.multiply(self.critic_grads_wrt_action_tf, (self.actor_tf- self.action_range[0])/(self.action_range[1] - self.action_range[0]))
-            # inverting gradients based on actor_tf
-            self.critic_grads_wrt_action_tf_bound_check = tf.cond(self.critic_grads_wrt_action_tf<0,f1,f2)
+            self.critic_grads_wrt_action_tf_bound_check = tf.where( self.critic_grads_wrt_action_tf<0,
+                                                        tf.multiply(self.critic_grads_wrt_action_tf, (self.action_range[1]-self.actor_tf)/(self.action_range[1] - self.action_range[0])),
+                                                        tf.multiply(self.critic_grads_wrt_action_tf, (self.actor_tf- self.action_range[0])/(self.action_range[1] - self.action_range[0]))
+                                                        )
 
             self.action_grad_wrt_actor_param = U.flatgrad(self.actor_tf, self.actor.trainable_vars, clip_norm = self.clip_norm)
             self.actor_grads = tf.multiply(self.action_grad_wrt_actor_param, self.critic_grads_wrt_action_tf_bound_check)
-
 
             self.action_grad_wrt_actor_param = tf.gradients(self.actor_tf, self.actor.trainable_vars)
             if self.clip_norm is not None:
