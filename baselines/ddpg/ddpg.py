@@ -184,6 +184,18 @@ class DDPG(object):
 
             self.action_grad_wrt_actor_param = U.flatgrad(self.actor_tf, self.actor.trainable_vars, clip_norm = self.clip_norm)
             self.actor_grads = tf.multiply(self.action_grad_wrt_actor_param, self.critic_grads_wrt_action_tf_bound_check)
+
+
+            self.action_grad_wrt_actor_param = tf.gradients(self.actor_tf, self.actor.trainable_vars)
+            if self.clip_norm is not None:
+                self.action_grad_wrt_actor_param = [tf.clip_by_norm(grad, clip_norm=self.clip_norm) \
+                                                    for grad in self.action_grad_wrt_actor_param]
+            
+            self.actor_grads = tf.concat(axis=0, values=[
+                                    tf.reshape(tf.matmul(self.critic_grads_wrt_action_tf_bound_check, grad) if grad is not None else tf.zeros_like(v), [numel(v)])
+                                    for (v, grad) in zip(self.actor.trainable_vars, self.action_grad_wrt_actor_param)
+                                ])
+
         
         self.actor_optimizer = MpiAdam(var_list=self.actor.trainable_vars,
             beta1=0.9, beta2=0.999, epsilon=1e-08)
