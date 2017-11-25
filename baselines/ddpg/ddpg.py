@@ -11,6 +11,7 @@ import baselines.common.tf_util as U
 from baselines.common.mpi_running_mean_std import RunningMeanStd
 from baselines.ddpg.util import reduce_std, mpi_mean
 
+import custom_op as my_op
 
 def normalize(x, stats):
     if stats is None:
@@ -126,6 +127,9 @@ class DDPG(object):
         self.target_Q = self.rewards + (1. - self.terminals1) * gamma * Q_obs1
 
         self.actor_tf = actor(normalized_obs0)
+        if inverting_grad:
+            self.actor_tf = my_op.py_func(my_op.my_identity_func, [self.actor_tf, -1., 1.], self.actor_tf.dtype, name="MyIdentity", grad=my_op._custom_identity_grad)
+        
         self.normalized_critic_with_actor_tf = critic(normalized_obs0, self.actor_tf, reuse=True)
         self.critic_with_actor_tf = denormalize(tf.clip_by_value(self.normalized_critic_with_actor_tf, self.return_range[0], self.return_range[1]), self.ret_rms)
         
@@ -170,29 +174,31 @@ class DDPG(object):
         logger.info('  actor shapes: {}'.format(actor_shapes))
         logger.info('  actor params: {}'.format(actor_nb_params))
         
-        if not self.inverting_grad:
-            self.actor_grads = U.flatgrad(self.actor_loss, self.actor.trainable_vars, clip_norm=self.clip_norm)
+        self.actor_grads = U.flatgrad(self.actor_loss, self.actor.trainable_vars, clip_norm=self.clip_norm)
+
+        # if not self.inverting_grad:
+        #     self.actor_grads = U.flatgrad(self.actor_loss, self.actor.trainable_vars, clip_norm=self.clip_norm)
         
-        else:
-            ## inverting gradients
-            self.critic_grads_wrt_action_tf = tf.gradients(self.actor_loss, self.actor_tf)
-            self.critic_grads_wrt_action_tf_bound_check = tf.where( self.critic_grads_wrt_action_tf<0,
-                                                        tf.multiply(self.critic_grads_wrt_action_tf, (self.action_range[1]-self.actor_tf)/(self.action_range[1] - self.action_range[0])),
-                                                        tf.multiply(self.critic_grads_wrt_action_tf, (self.actor_tf- self.action_range[0])/(self.action_range[1] - self.action_range[0]))
-                                                        )
+        # else:
+        #     ## inverting gradients
+        #     self.critic_grads_wrt_action_tf = tf.gradients(self.actor_loss, self.actor_tf)
+        #     self.critic_grads_wrt_action_tf_bound_check = tf.where( self.critic_grads_wrt_action_tf<0,
+        #                                                 tf.multiply(self.critic_grads_wrt_action_tf, (self.action_range[1]-self.actor_tf)/(self.action_range[1] - self.action_range[0])),
+        #                                                 tf.multiply(self.critic_grads_wrt_action_tf, (self.actor_tf- self.action_range[0])/(self.action_range[1] - self.action_range[0]))
+        #                                                 )
 
-            self.action_grad_wrt_actor_param = U.flatgrad(self.actor_tf, self.actor.trainable_vars, clip_norm = self.clip_norm)
-            self.actor_grads = tf.multiply(self.action_grad_wrt_actor_param, self.critic_grads_wrt_action_tf_bound_check)
+        #     self.action_grad_wrt_actor_param = U.flatgrad(self.actor_tf, self.actor.trainable_vars, clip_norm = self.clip_norm)
+        #     self.actor_grads = tf.multiply(self.action_grad_wrt_actor_param, self.critic_grads_wrt_action_tf_bound_check)
 
-            self.action_grad_wrt_actor_param = tf.gradients(self.actor_tf, self.actor.trainable_vars)
-            if self.clip_norm is not None:
-                self.action_grad_wrt_actor_param = [tf.clip_by_norm(grad, clip_norm=self.clip_norm) \
-                                                    for grad in self.action_grad_wrt_actor_param]
+        #     self.action_grad_wrt_actor_param = tf.gradients(self.actor_tf, self.actor.trainable_vars)
+        #     if self.clip_norm is not None:
+        #         self.action_grad_wrt_actor_param = [tf.clip_by_norm(grad, clip_norm=self.clip_norm) \
+        #                                             for grad in self.action_grad_wrt_actor_param]
             
-            self.actor_grads = tf.concat(axis=0, values=[
-                                    tf.reshape(tf.matmul(self.critic_grads_wrt_action_tf_bound_check, grad) if grad is not None else tf.zeros_like(v), [numel(v)])
-                                    for (v, grad) in zip(self.actor.trainable_vars, self.action_grad_wrt_actor_param)
-                                ])
+        #     self.actor_grads = tf.concat(axis=0, values=[
+        #                             tf.reshape(tf.matmul(self.critic_grads_wrt_action_tf_bound_check, grad) if grad is not None else tf.zeros_like(v), [numel(v)])
+        #                             for (v, grad) in zip(self.actor.trainable_vars, self.action_grad_wrt_actor_param)
+        #                         ])
 
         
         self.actor_optimizer = MpiAdam(var_list=self.actor.trainable_vars,
