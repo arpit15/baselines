@@ -59,7 +59,8 @@ class DDPG(object):
         gamma=0.99, tau=0.001, normalize_returns=False, enable_popart=False, normalize_observations=True,
         batch_size=128, observation_range=(-5., 5.), action_range=(-1., 1.), return_range=(-np.inf, np.inf),
         adaptive_param_noise=True, adaptive_param_noise_policy_threshold=.1,
-        critic_l2_reg=0., actor_lr=1e-4, critic_lr=1e-3, clip_norm=None, reward_scale=1.):
+        critic_l2_reg=0., actor_lr=1e-4, critic_lr=1e-3, clip_norm=None, reward_scale=1.,
+        inverting_grad = False):
         # Inputs.
         self.obs0 = tf.placeholder(tf.float32, shape=(None,) + observation_shape, name='obs0')
         self.obs1 = tf.placeholder(tf.float32, shape=(None,) + observation_shape, name='obs1')
@@ -90,6 +91,7 @@ class DDPG(object):
         self.batch_size = batch_size
         self.stats_sample = None
         self.critic_l2_reg = critic_l2_reg
+        self.inverting_grad = inverting_grad
 
         # Observation normalization.
         if self.normalize_observations:
@@ -118,14 +120,15 @@ class DDPG(object):
         self.target_critic = target_critic
 
         # Create networks and core TF parts that are shared across setup parts.
-        self.actor_tf = actor(normalized_obs0)
         self.normalized_critic_tf = critic(normalized_obs0, self.actions)
         self.critic_tf = denormalize(tf.clip_by_value(self.normalized_critic_tf, self.return_range[0], self.return_range[1]), self.ret_rms)
-        self.normalized_critic_with_actor_tf = critic(normalized_obs0, self.actor_tf, reuse=True)
-        self.critic_with_actor_tf = denormalize(tf.clip_by_value(self.normalized_critic_with_actor_tf, self.return_range[0], self.return_range[1]), self.ret_rms)
         Q_obs1 = denormalize(target_critic(normalized_obs1, target_actor(normalized_obs1)), self.ret_rms)
         self.target_Q = self.rewards + (1. - self.terminals1) * gamma * Q_obs1
 
+        self.actor_tf = actor(normalized_obs0)
+        self.normalized_critic_with_actor_tf = critic(normalized_obs0, self.actor_tf, reuse=True)
+        self.critic_with_actor_tf = denormalize(tf.clip_by_value(self.normalized_critic_with_actor_tf, self.return_range[0], self.return_range[1]), self.ret_rms)
+        
         # Set up parts.
         if self.param_noise is not None:
             self.setup_param_noise(normalized_obs0)
@@ -166,7 +169,22 @@ class DDPG(object):
         actor_nb_params = sum([reduce(lambda x, y: x * y, shape) for shape in actor_shapes])
         logger.info('  actor shapes: {}'.format(actor_shapes))
         logger.info('  actor params: {}'.format(actor_nb_params))
-        self.actor_grads = U.flatgrad(self.actor_loss, self.actor.trainable_vars, clip_norm=self.clip_norm)
+        
+        if not self.inverting_grad:
+            self.actor_grads = U.flatgrad(self.actor_loss, self.actor.trainable_vars, clip_norm=self.clip_norm)
+        
+        else:
+            ## inverting gradients
+            self.critic_grads_wrt_action_tf = U.flatgrad(self.actor_loss, [self.actor_tf])
+            # inverting gradients based on actor_tf
+            self.critic_grads_wrt_action_tf_bound_check = tf.cond(self.critic_grads_wrt_action_tf>0, \
+                                                            lambda: tf.multiply(self.critic_grads_wrt_action_tf, (self.action_range[1]-self.actor_tf)/(self.action_range[1] - self.action_range[0]))\
+                                                            lambda: tf.multiply(self.critic_grads_wrt_action_tf, (self.actor_tf- self.action_range[0])/(self.action_range[1] - self.action_range[0]))\
+                                                            )
+
+            self.action_grad_wrt_actor_param = U.flatgrad(self.actor_tf, self.actor.trainable_vars, clip_norm = self.clip_norm)
+            self.actor_grads = tf.multiply(self.action_grad_wrt_actor_param, self.critic_grads_wrt_action_tf_bound_check)
+        
         self.actor_optimizer = MpiAdam(var_list=self.actor.trainable_vars,
             beta1=0.9, beta2=0.999, epsilon=1e-08)
 
@@ -189,6 +207,9 @@ class DDPG(object):
         logger.info('  critic shapes: {}'.format(critic_shapes))
         logger.info('  critic params: {}'.format(critic_nb_params))
         self.critic_grads = U.flatgrad(self.critic_loss, self.critic.trainable_vars, clip_norm=self.clip_norm)
+            
+        ## add inverting gradients
+        
         self.critic_optimizer = MpiAdam(var_list=self.critic.trainable_vars,
             beta1=0.9, beta2=0.999, epsilon=1e-08)
 
