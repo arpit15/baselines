@@ -11,7 +11,7 @@ import baselines.common.tf_util as U
 from baselines.common.mpi_running_mean_std import RunningMeanStd
 from baselines.ddpg.util import reduce_std, mpi_mean
 
-import custom_op as my_op
+from baselines.ddpg import custom_op as my_op
 
 def normalize(x, stats):
     if stats is None:
@@ -128,8 +128,8 @@ class DDPG(object):
 
         self.actor_tf = actor(normalized_obs0)
         if inverting_grad:
-            self.actor_tf = my_op.py_func(my_op.my_identity_func, [self.actor_tf, -1., 1.], self.actor_tf.dtype, name="MyIdentity", grad=my_op._custom_identity_grad)
-        
+            actor_tf_clone_with_invert_grad = my_op.py_func(my_op.my_identity_func, [self.actor_tf, -1., 1.], self.actor_tf.dtype, name="MyIdentity", grad=my_op._custom_identity_grad)
+            self.actor_tf = tf.reshape(actor_tf_clone_with_invert_grad, tf.shape(self.actor_tf)) 
         self.normalized_critic_with_actor_tf = critic(normalized_obs0, self.actor_tf, reuse=True)
         self.critic_with_actor_tf = denormalize(tf.clip_by_value(self.normalized_critic_with_actor_tf, self.return_range[0], self.return_range[1]), self.ret_rms)
         
