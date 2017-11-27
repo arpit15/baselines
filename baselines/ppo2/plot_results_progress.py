@@ -8,8 +8,8 @@ if __name__ == "__main__":
 	print("checking the dir %s"%dirname)
 	try:
 		data = pd.read_csv(dirname)
-		plt.plot(data["total/epochs"], data["eval/return_history"], label='eval')
-		plt.plot(data["total/epochs"], data["rollout/return_history"], label='train')
+		# plt.plot(data["total/epochs"], data["eval/return_history"], label='eval')
+		plt.plot(data["nupdates"], data["eprewmean"], label='train')
 		plt.legend()
 		plt.xlabel('Epochs --->')
 		plt.ylabel('Episode Reward ---->')
