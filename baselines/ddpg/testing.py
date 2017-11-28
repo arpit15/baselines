@@ -60,11 +60,7 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
         eval_qs = []
         eval_obs = eval_env.reset()
 
-<<<<<<< HEAD
         for i in range(50):
-=======
-        for i in range(10):
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
             print("Evaluating:%d"%(i+1))
             eval_episode_reward = 0.
             for t_rollout in range(nb_eval_steps):
@@ -73,11 +69,7 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
                 if render_eval:
                     # print("render!")
                     eval_env.render()
-<<<<<<< HEAD
-                    sleep(0.01)
-=======
                     sleep(0.05)
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
                     # print("rendered!")
 
                 eval_episode_reward += eval_r
@@ -93,12 +85,7 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
             if(not eval_done):
                 print("episode reward::%f"%eval_episode_reward)
 
-<<<<<<< HEAD
-        print("reward - mean:%f, var:%f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))
-=======
-
         print("episode reward - mean:%.4f, var:%.4f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
 
             
 
