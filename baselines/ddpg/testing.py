@@ -60,25 +60,20 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
         eval_qs = []
         eval_obs = eval_env.reset()
 
-<<<<<<< HEAD
-        for i in range(50):
-=======
+
         for i in range(10):
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
             print("Evaluating:%d"%(i+1))
             eval_episode_reward = 0.
             for t_rollout in range(nb_eval_steps):
                 eval_action, eval_q = agent.pi(eval_obs, apply_noise=False, compute_Q=True)
                 eval_obs, eval_r, eval_done, eval_info = eval_env.step(max_action * eval_action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
+                # print(eval_info, eval_done)
                 if render_eval:
                     # print("render!")
                     eval_env.render()
-<<<<<<< HEAD
-                    sleep(0.01)
-=======
+
                     sleep(0.05)
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
-                    # print("rendered!")
+                   # print("rendered!")
 
                 eval_episode_reward += eval_r
 
@@ -89,16 +84,17 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
                     eval_episode_rewards.append(eval_episode_reward)
                     eval_episode_rewards_history.append(eval_episode_reward)
                     eval_episode_reward = 0.
+                    break
 
             if(not eval_done):
-                print("episode reward::%f"%eval_episode_reward)
+                print("epoch:%d reward::%f"%(i+1,eval_episode_reward))
+                eval_obs = eval_env.reset()
+                eval_episode_rewards.append(eval_episode_reward)
+                eval_episode_rewards_history.append(eval_episode_reward)
+                eval_episode_reward = 0.
 
-<<<<<<< HEAD
-        print("reward - mean:%f, var:%f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))
-=======
 
         print("episode reward - mean:%.4f, var:%.4f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))
->>>>>>> 3804f7d536b7ce8f3c614943ca5be63f87e9637a
 
             
 
