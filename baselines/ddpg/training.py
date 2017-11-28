@@ -2,6 +2,7 @@ import os
 import time
 from collections import deque
 import pickle
+import math 
 
 from baselines.ddpg.ddpg import DDPG
 from baselines.ddpg.util import mpi_mean, mpi_std, mpi_max, mpi_sum
@@ -170,6 +171,12 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                             eval_episode_rewards_history.append(eval_episode_reward)
                             eval_episode_reward = 0.
 
+                    if not eval_done:
+                        # eval_obs = eval_env.reset()
+                        eval_episode_rewards.append(eval_episode_reward)
+                        eval_episode_rewards_history.append(eval_episode_reward)
+                        eval_episode_reward = 0.
+
             if dologging: 
                 # Log stats.
                 epoch_train_duration = time.time() - epoch_start_time
@@ -179,6 +186,8 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 for key in sorted(stats.keys()):
                     combined_stats[key] = mpi_mean(stats[key])
 
+                # print(eval_episode_rewards, mpi_mean(eval_episode_rewards))
+                # set_trace()
                 # Rollout statistics.
                 combined_stats['rollout/return'] = mpi_mean(epoch_episode_rewards)
                 combined_stats['rollout/return_history'] = mpi_mean(np.mean(episode_rewards_history))

@@ -2,6 +2,7 @@ import os
 import time
 from collections import deque
 import pickle
+import math
 
 from baselines.ddpg.ddpg import DDPG
 from baselines.ddpg.util import mpi_mean, mpi_std, mpi_max, mpi_sum
@@ -76,6 +77,8 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
 
                 eval_qs.append(eval_q)
                 if eval_done:
+                    if(math.isnan(eval_episode_reward)):
+                        print("\n################\nNAN\n##################\n")
                     print("episode reward::%f"%eval_episode_reward)
                     eval_obs = eval_env.reset()
                     eval_episode_rewards.append(eval_episode_reward)
