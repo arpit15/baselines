@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 import argparse
 from baselines import bench, logger
 
-def train(env_id, num_timesteps, seed):
+def train(env_id, num_timesteps, seed, save_interval):
     from baselines.common import set_global_seeds
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.ppo2 import ppo2
@@ -29,7 +28,8 @@ def train(env_id, num_timesteps, seed):
         ent_coef=0.0,
         lr=3e-4,
         cliprange=0.2,
-        total_timesteps=num_timesteps)
+        total_timesteps=num_timesteps,
+        save_interval=save_interval)
 
 
 def main():
@@ -37,9 +37,10 @@ def main():
     parser.add_argument('--env', help='environment ID', default='Hopper-v1')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num-timesteps', type=int, default=int(1e6))
+    parser.add_argument('--save-interval', type=int, default=int(10))
     args = parser.parse_args()
     logger.configure()
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, save_interval=args.save_interval)
 
 
 if __name__ == '__main__':

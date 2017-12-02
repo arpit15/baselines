@@ -24,8 +24,16 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
 
     assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
     max_action = env.action_space.high
-    dologging = kwargs["dologging"]
-    invert_grad = kwargs["invert_grad"]
+    
+    if "dologging" in kwargs: 
+        dologging = kwargs["dologging"]
+    else:
+        dologging = True
+        
+    if "invert_grad" in kwargs: 
+        invert_grad = kwargs["invert_grad"]
+    else:
+        invert_grad = False
 
     if dologging: logger.info('scaling actions by {} before executing in env'.format(max_action))
     agent = DDPG(actor, critic, memory, env.observation_space.shape, env.action_space.shape,
