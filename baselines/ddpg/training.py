@@ -74,6 +74,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
         
         agent.reset()
         obs = env.reset()
+        
         if eval_env is not None:
             eval_obs = eval_env.reset()
         done = False
@@ -108,6 +109,8 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                         env.render()
                     assert max_action.shape == action.shape
                     new_obs, r, done, info = env.step(max_action * action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
+                    if((t+1)%100) == 0:
+                        print(max_action*action, new_obs, r)
                     t += 1
                     if rank == 0 and render:
                         env.render()
@@ -132,6 +135,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
 
                         agent.reset()
                         obs = env.reset()
+                        print(obs)
 
                 # Train.
                 epoch_actor_losses = []
@@ -159,7 +163,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                         eval_obs, eval_r, eval_done, eval_info = eval_env.step(max_action * eval_action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
                         if render_eval:
                             print("Render!")
-                            # set_trace()
+                            
                             eval_env.render()
                             print("rendered!")
                         eval_episode_reward += eval_r
@@ -171,11 +175,11 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                             eval_episode_rewards_history.append(eval_episode_reward)
                             eval_episode_reward = 0.
 
-                    if not eval_done:
-                        # eval_obs = eval_env.reset()
-                        eval_episode_rewards.append(eval_episode_reward)
-                        eval_episode_rewards_history.append(eval_episode_reward)
-                        eval_episode_reward = 0.
+                    # if not eval_done:
+                    #     # eval_obs = eval_env.reset()
+                    #     eval_episode_rewards.append(eval_episode_reward)
+                    #     eval_episode_rewards_history.append(eval_episode_reward)
+                    #     eval_episode_reward = 0.
 
             if dologging: 
                 # Log stats.
@@ -186,11 +190,12 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 for key in sorted(stats.keys()):
                     combined_stats[key] = mpi_mean(stats[key])
 
-                # print(eval_episode_rewards, mpi_mean(eval_episode_rewards))
-                # set_trace()
                 # Rollout statistics.
                 combined_stats['rollout/return'] = mpi_mean(epoch_episode_rewards)
-                combined_stats['rollout/return_history'] = mpi_mean(np.mean(episode_rewards_history))
+                if len(episode_rewards_history)>0:
+                    combined_stats['rollout/return_history'] = mpi_mean( np.mean(episode_rewards_history))
+                else:
+                    combined_stats['rollout/return_history'] = 0.
                 combined_stats['rollout/episode_steps'] = mpi_mean(epoch_episode_steps)
                 combined_stats['rollout/episodes'] = mpi_sum(epoch_episodes)
                 combined_stats['rollout/actions_mean'] = mpi_mean(epoch_actions)
@@ -205,7 +210,10 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 # Evaluation statistics.
                 if eval_env is not None:
                     combined_stats['eval/return'] = mpi_mean(eval_episode_rewards)
-                    combined_stats['eval/return_history'] = mpi_mean(np.mean(eval_episode_rewards_history))
+                    if len(eval_episode_rewards_history) > 0:
+                        combined_stats['eval/return_history'] = mpi_mean( np.mean(eval_episode_rewards_history) )
+                    else:
+                        combined_stats['eval/return_history'] = 0.
                     combined_stats['eval/Q'] = mpi_mean(eval_qs)
                     combined_stats['eval/episodes'] = mpi_mean(len(eval_episode_rewards))
 
