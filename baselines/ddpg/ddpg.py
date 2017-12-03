@@ -279,7 +279,7 @@ class DDPG(object):
         if self.normalize_observations:
             self.obs_rms.update(np.array([obs0]))
 
-    def train(self):
+    def train(self, summary_var):
         # Get a batch.
         batch = self.memory.sample(batch_size=self.batch_size)
 
@@ -312,8 +312,8 @@ class DDPG(object):
             })
 
         # Get all gradients and perform a synced update.
-        ops = [self.actor_grads, self.actor_loss, self.critic_grads, self.critic_loss]
-        actor_grads, actor_loss, critic_grads, critic_loss = self.sess.run(ops, feed_dict={
+        ops = [summary_var, self.actor_grads, self.actor_loss, self.critic_grads, self.critic_loss]
+        current_summary, actor_grads, actor_loss, critic_grads, critic_loss = self.sess.run(ops, feed_dict={
             self.obs0: batch['obs0'],
             self.actions: batch['actions'],
             self.critic_target: target_Q,
@@ -321,7 +321,7 @@ class DDPG(object):
         self.actor_optimizer.update(actor_grads, stepsize=self.actor_lr)
         self.critic_optimizer.update(critic_grads, stepsize=self.critic_lr)
 
-        return critic_loss, actor_loss
+        return critic_loss, actor_loss, current_summary
 
     def initialize(self, sess):
         self.sess = sess

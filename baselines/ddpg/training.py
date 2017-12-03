@@ -171,14 +171,14 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                         distance = agent.adapt_param_noise()
                         epoch_adaptive_distances.append(distance)
 
-                    cl, al = agent.train()
+                    cl, al, current_summary = agent.train(summary_var)
                     epoch_critic_losses.append(cl)
                     epoch_actor_losses.append(al)
                     agent.update_target_net()
 
                     if dologging:
-                        current_summary = sess.run(summary_var)
-                        writer_t.add_summary(summ, epoch*nb_epoch_cycles*nb_train_steps + cycle*nb_train_steps + t_train)
+                        
+                        writer_t.add_summary(current_summary, epoch*nb_epoch_cycles*nb_train_steps + cycle*nb_train_steps + t_train)
 
                 # Evaluate.
                 eval_episode_rewards = []
