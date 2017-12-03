@@ -38,8 +38,9 @@ def main():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num-timesteps', type=int, default=int(1e6))
     parser.add_argument('--save-interval', type=int, default=int(10))
+    parser.add_argument('--log-dir', type=str, default='/home/arpit/new_RL3/baseline_results/Baxter-v1/run4')
     args = parser.parse_args()
-    logger.configure()
+    logger.configure(dir = args.log_dir)
     train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, save_interval=args.save_interval)
 
 
