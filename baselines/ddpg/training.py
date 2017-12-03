@@ -76,7 +76,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 tf.summary.histogram(var.name, var)
 
             summary_var = tf.summary.merge_all()
-            writer_t = tf.summary.FileWriter(osp.join(logger.dir, 'train'), sess.graph)
+            writer_t = tf.summary.FileWriter(osp.join(logger.get_dir(), 'train'), sess.graph)
 
         # Prepare everything.
         agent.initialize(sess)
