@@ -190,7 +190,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     model = make_model()
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
-    writer_t = tf.summary.FileWriter(osp.join(logger.get_dir(), 'train'), U.get_default_session().graph)
+    writer_t = tf.summary.FileWriter(osp.join(logger.get_dir(), 'train'), tf.get_default_session().graph)
 
     epinfobuf = deque(maxlen=100)
     tfirststart = time.time()
