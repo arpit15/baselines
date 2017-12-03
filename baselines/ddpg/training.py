@@ -91,6 +91,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 if checkpoint and checkpoint.model_checkpoint_path:
                     saver.restore(U.get_session(), checkpoint.model_checkpoint_path)
                     print( "checkpoint loaded:" , checkpoint.model_checkpoint_path)
+                    logger.info("checkpoint loaded:" + str(checkpoint.model_checkpoint_path))
                     tokens = checkpoint.model_checkpoint_path.split("-")[-1]
                     # set global step
                     global_t = int(tokens)
@@ -133,8 +134,8 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                         env.render()
                     assert max_action.shape == action.shape
                     new_obs, r, done, info = env.step(max_action * action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
-                    if((t+1)%100) == 0:
-                        print(max_action*action, new_obs, r)
+                    #if((t+1)%100) == 0:
+                    #    print(max_action*action, new_obs, r)
                     t += 1
                     if rank == 0 and render:
                         env.render()
@@ -159,7 +160,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
 
                         agent.reset()
                         obs = env.reset()
-                        print(obs)
+                        #print(obs)
 
                 # Train.
                 epoch_actor_losses = []
