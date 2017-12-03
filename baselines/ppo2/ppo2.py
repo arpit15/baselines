@@ -48,11 +48,13 @@ class Model(object):
 
         if max_grad_norm is not None:
             grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
-        grads = list(zip(grads, params))
-
+        
         for grad in grads:
             tf.summary.histogram("after_clip_" + grad.name, grad)
 
+        grads = list(zip(grads, params))
+
+        
         trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
         _train = trainer.apply_gradients(grads)
 
