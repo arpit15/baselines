@@ -53,6 +53,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
     else:
         saver = None
     
+
     # step = 0
     global_t = 0
     episode = 0
@@ -62,6 +63,21 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
     
    
     with U.single_threaded_session() as sess:
+        
+        # Set summary saver
+        if dologging: 
+            tf.summary.histogram("actor_grads", agent.actor_grads)
+            tf.summary.histogram("critic_grads", agent.critic_grads)
+            actor_trainable_vars = actor.trainable_vars
+            for var in actor_trainable_vars:
+                tf.summary.histogram(var.name, var)
+            critic_trainable_vars = critic.trainable_vars
+            for var in critic_trainable_vars:
+                tf.summary.histogram(var.name, var)
+
+            summary_var = tf.summary.merge_all()
+            writer_t = tf.summary.FileWriter(osp.join(logger.dir, 'train'), sess.graph)
+
         # Prepare everything.
         agent.initialize(sess)
         sess.graph.finalize()
@@ -159,6 +175,10 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                     epoch_critic_losses.append(cl)
                     epoch_actor_losses.append(al)
                     agent.update_target_net()
+
+                    if dologging:
+                        current_summary = sess.run(summary_var)
+                        writer_t.add_summary(summ, epoch*nb_epoch_cycles*nb_train_steps + cycle*nb_train_steps + t_train)
 
                 # Evaluate.
                 eval_episode_rewards = []
