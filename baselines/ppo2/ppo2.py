@@ -42,9 +42,17 @@ class Model(object):
         with tf.variable_scope('model'):
             params = tf.trainable_variables()
         grads = tf.gradients(loss, params)
+        
+        for grad in grads:
+            tf.summary.histogram("before_clip_" + grad.name, grad)
+
         if max_grad_norm is not None:
             grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
         grads = list(zip(grads, params))
+
+        for grad in grads:
+            tf.summary.histogram("after_clip_" + grad.name, grad)
+
         trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
         _train = trainer.apply_gradients(grads)
 
@@ -57,7 +65,7 @@ class Model(object):
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
             return sess.run(
-                [pg_loss, vf_loss, entropy, approxkl, clipfrac, _train],
+                [self.summary_op, pg_loss, vf_loss, entropy, approxkl, clipfrac, _train],
                 td_map
             )[:-1]
         self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
@@ -81,6 +89,8 @@ class Model(object):
         self.initial_state = act_model.initial_state
         self.save = save
         self.load = load
+
+        self.summary_op = tf.summary.merge_all()
         tf.global_variables_initializer().run(session=sess) #pylint: disable=E1101
 
 class Runner(object):
@@ -177,6 +187,8 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     model = make_model()
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
+    writer_t = tf.summary.FileWriter(osp.join(logger.get_dir(), 'train'), U.get_default_session().graph)
+
     epinfobuf = deque(maxlen=100)
     tfirststart = time.time()
 
@@ -193,14 +205,23 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
         mblossvals = []
         if states is None: # nonrecurrent version
             inds = np.arange(nbatch)
-            for _ in range(noptepochs):
+            for curr_noptepochs in range(noptepochs):
                 np.random.shuffle(inds)
                 for start in range(0, nbatch, nbatch_train):
                     end = start + nbatch_train
                     mbinds = inds[start:end]
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices))
+                    
+                    ## breaking change to include summaries
+                    summary_and_losses = model.train(lrnow, cliprangenow, *slices)
+                    current_summary = summary_and_losses[0]
+
+                    # summary dumping to TB
+                    writer_t.add_summary(current_summary, (update-1)*noptepochs*nbatch_train + curr_noptepochs*nbatch_train + start)
+                    losses = summary_and_losses[1:]
+                    mblossvals.append(losses)
         else: # recurrent version
+            ## breaking change by adding summary_op in model.train
             assert nenvs % nminibatches == 0
             envsperbatch = nenvs // nminibatches
             envinds = np.arange(nenvs)
