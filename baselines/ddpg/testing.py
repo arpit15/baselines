@@ -16,6 +16,8 @@ from mpi4py import MPI
 import os.path as osp
 from time import sleep
 
+from ipdb import set_trace
+
 def test(env, render_eval, reward_scale, param_noise, actor, critic,
     normalize_returns, normalize_observations, critic_l2_reg, actor_lr, critic_lr, action_noise,
     popart, gamma, clip_norm, nb_eval_steps, batch_size, memory,
@@ -51,6 +53,8 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
                 # set global step
                 global_t = int(tokens)
                 print( ">>> global step set:", global_t)
+            else:
+                print(">>>no checkpoint file found")
         
         epoch_episode_eval_rewards = []
         epoch_episode_eval_steps = []
@@ -67,19 +71,20 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
             for t_rollout in range(nb_eval_steps):
                 eval_action, eval_q = agent.pi(eval_obs, apply_noise=False, compute_Q=True)
                 eval_obs, eval_r, eval_done, eval_info = eval_env.step(max_action * eval_action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
-                # print(eval_info, eval_done)
+                # set_trace()
+                print(eval_info, eval_done)
                 if render_eval:
                     # print("render!")
                     eval_env.render()
-                    sleep(0.01)
+                    sleep(0.001)
                     # print("rendered!")
 
                 eval_episode_reward += eval_r
 
                 eval_qs.append(eval_q)
                 if eval_done:
-                    if(math.isnan(eval_episode_reward)):
-                        print("\n################\nNAN\n##################\n")
+                    print(eval_obs)
+                    # set_trace()
                     print("episode reward::%f"%eval_episode_reward)
                     eval_obs = eval_env.reset()
                     eval_episode_rewards.append(eval_episode_reward)

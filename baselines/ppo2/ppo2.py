@@ -78,6 +78,7 @@ class Model(object):
             joblib.dump(ps, save_path)
 
         def load(load_path):
+            print(">>> loading from file %s"%load_path)
             loaded_params = joblib.load(load_path)
             restores = []
             for p, loaded_p in zip(params, loaded_params):
