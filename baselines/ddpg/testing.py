@@ -62,43 +62,30 @@ def test(env, render_eval, reward_scale, param_noise, actor, critic,
         # Evaluate.
         eval_episode_rewards = []
         eval_episode_rewards_history = []
-        eval_qs = []
-        eval_obs = eval_env.reset()
 
         for i in range(10):
             print("Evaluating:%d"%(i+1))
             eval_episode_reward = 0.
-            for t_rollout in range(nb_eval_steps):
+            eval_obs = eval_env.reset()
+            eval_done = False
+            
+            while(not eval_done):
                 eval_action, eval_q = agent.pi(eval_obs, apply_noise=False, compute_Q=True)
                 eval_obs, eval_r, eval_done, eval_info = eval_env.step(max_action * eval_action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
-                # set_trace()
+                
                 print(eval_info, eval_done)
                 if render_eval:
-                    # print("render!")
                     eval_env.render()
                     sleep(0.001)
-                    # print("rendered!")
-
+                    
                 eval_episode_reward += eval_r
-
-                eval_qs.append(eval_q)
-                if eval_done:
-                    print(eval_obs)
-                    # set_trace()
-                    print("episode reward::%f"%eval_episode_reward)
-                    eval_obs = eval_env.reset()
-                    eval_episode_rewards.append(eval_episode_reward)
-                    eval_episode_rewards_history.append(eval_episode_reward)
-                    eval_episode_reward = 0.
-                    break
-
-            if(not eval_done):
-                print("epoch:%d reward::%f"%(i+1,eval_episode_reward))
-                eval_obs = eval_env.reset()
-                eval_episode_rewards.append(eval_episode_reward)
-                eval_episode_rewards_history.append(eval_episode_reward)
-                eval_episode_reward = 0.
-
+                
+            print("episode reward::%f"%eval_episode_reward)
+            eval_obs = eval_env.reset()
+            eval_episode_rewards.append(eval_episode_reward)
+            eval_episode_rewards_history.append(eval_episode_reward)
+            eval_episode_reward = 0.
+            
         print("episode reward - mean:%.4f, var:%.4f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))
 
             
