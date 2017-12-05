@@ -38,40 +38,29 @@ def test(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     eval_episode_rewards = []
     eval_episode_rewards_history = []
 
+    from ipdb import set_trace
+
     for i in range(10):
         print("Evaluating:%d"%(i+1))
         eval_episode_reward = 0.
         eval_done = False
         states = None
-        dones = [False]
-        eval_obs = np.zeros((nenvs,) + env.observation_space.shape, dtype=model.train_model.X.dtype.name)
-        eval_obs[0] = env.reset()
+        eval_obs = np.zeros(env.observation_space.shape, dtype=model.train_model.X.dtype.name)
+        eval_obs = env.reset()
         while(not eval_done):
-            # eval_action, eval_q = model.step(eval_obs, )
-            eval_actions, _, states, _ = model.step(eval_obs)
-            eval_obs[0], rewards, dones, infos = env.step(eval_actions[0])
+            eval_actions, _, states, _ = model.step(eval_obs[np.newaxis,:])
+            eval_obs, rewards, eval_done, infos = env.step(eval_actions[0])
             
             if render_eval:
-                # print("render!")
                 env.render()
                 sleep(0.01)
-                # print("rendered!")
 
             eval_episode_reward += rewards
 
-            if eval_done:
-                print("episode reward::%f"%eval_episode_reward)
-                # eval_obs[0] = env.reset()
-                eval_episode_rewards.append(eval_episode_reward)
-                eval_episode_rewards_history.append(eval_episode_reward)
-                eval_episode_reward = 0.
-                break
-
-        if(not eval_done):
-            print("epoch:%d reward::%f"%(i+1,eval_episode_reward))
-            eval_episode_rewards.append(eval_episode_reward)
-            eval_episode_rewards_history.append(eval_episode_reward)
-            eval_episode_reward = 0.
+        print("episode reward::%f"%eval_episode_reward)
+        eval_episode_rewards.append(eval_episode_reward)
+        eval_episode_rewards_history.append(eval_episode_reward)
+        eval_episode_reward = 0.
 
     print("episode reward - mean:%.4f, var:%.4f"%(np.mean(eval_episode_rewards), np.var(eval_episode_rewards)))     
         
