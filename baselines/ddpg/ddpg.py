@@ -64,10 +64,11 @@ class DDPG(object):
         inverting_grad = False):
         
         logger.info("DDPG params")
-        args_dic = locals()
-        for key in sorted(args_dic.keys()):
-            logger.record_tabular(key, args_dic[key])
-        logger.dump_tabular()
+        logger.info(locals().items())
+        # args_dic = locals()
+        # for key in sorted(args_dic.keys()):
+        #     logger.record_tabular(key, args_dic[key])
+        # logger.dump_tabular()
         logger.info("-"*20)
         # Inputs.
         self.obs0 = tf.placeholder(tf.float32, shape=(None,) + observation_shape, name='obs0')
