@@ -29,6 +29,11 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
         dologging = kwargs["dologging"]
     else:
         dologging = True
+
+    if "tf_sum_logging" in kwargs: 
+        tf_sum_logging = kwargs["tf_sum_logging"]
+    else:
+        tf_sum_logging = False
         
     if "invert_grad" in kwargs: 
         invert_grad = kwargs["invert_grad"]
@@ -65,7 +70,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
     with U.single_threaded_session() as sess:
         
         # Set summary saver
-        if dologging: 
+        if dologging and tf_sum_logging: 
             tf.summary.histogram("actor_grads", agent.actor_grads)
             tf.summary.histogram("critic_grads", agent.critic_grads)
             actor_trainable_vars = actor.trainable_vars
@@ -77,6 +82,8 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
 
             summary_var = tf.summary.merge_all()
             writer_t = tf.summary.FileWriter(osp.join(logger.get_dir(), 'train'), sess.graph)
+        else:
+            summary_var = tf.no_op()
 
         # Prepare everything.
         agent.initialize(sess)
@@ -175,7 +182,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                     epoch_actor_losses.append(al)
                     agent.update_target_net()
 
-                    if dologging:
+                    if dologging and tf_sum_logging:
                         
                         writer_t.add_summary(current_summary, epoch*nb_epoch_cycles*nb_train_steps + cycle*nb_train_steps + t_train)
 
