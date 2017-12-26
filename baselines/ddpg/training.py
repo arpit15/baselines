@@ -266,7 +266,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                     else:
                         combined_stats['eval/return_history'] = 0.
                     combined_stats['eval/Q'] = mpi_mean(eval_qs)
-                    combined_stats['eval/episodes'] = mpi_mean(len(eval_episode_rewards))
+                    #combined_stats['eval/episodes'] = mpi_mean(len(eval_episode_rewards))
 
                 # Total statistics.
                 combined_stats['total/duration'] = mpi_mean(duration)
@@ -290,7 +290,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
 
 
                 ## save tf model
-                if (epoch+1)%save_freq == 0 and rank==0:
+                if rank==0 and (epoch+1)%save_freq == 0:
                     os.makedirs(osp.join(logdir, "model"), exist_ok=True)
                     saver.save(U.get_session(), logdir+"/model/ddpg", global_step = epoch)
 
